@@ -1,1 +1,43 @@
+# .github/workflows/jobhunt.yml
+# Runs every day at 9:00 AM IST = 3:30 AM UTC
 
+name: 🤖 JobHunt Bot — Daily Search
+
+on:
+  schedule:
+    - cron: "30 3 * * *"   # 3:30 AM UTC = 9:00 AM IST every day
+  workflow_dispatch:         # also allows manual trigger from GitHub UI
+
+jobs:
+  search-jobs:
+    name: Search & WhatsApp Alert
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: ⬇️ Checkout repo
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: 📦 Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: 🔍 Run Job Search
+        env:
+          TWILIO_ACCOUNT_SID:   ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN:    ${{ secrets.TWILIO_AUTH_TOKEN }}
+          MY_WHATSAPP_NUMBER:   ${{ secrets.MY_WHATSAPP_NUMBER }}
+        run: python job_search.py
+
+      - name: 💾 Save results as artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jobs-${{ github.run_number }}
+          path: jobs_found.json
+          retention-days: 30
